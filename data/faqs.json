@@ -1,0 +1,27 @@
+[
+  {
+    "id": "1",
+    "title": "Trust badges ov near CTA",
+    "body": "Adding trust badges near the primary CTA increased signups by 12%."
+  },
+  {
+    "id": "2",
+    "title": "Above-the-fold form",
+    "body": "Visible form above the fold lifted lead submissions by 9%."
+  },
+  {
+    "id": "3",
+    "title": "Qualifying question",
+    "body": "A single qualifying question improved demo attendance by 6%."
+  },
+  {
+    "id": "4",
+    "title": "Test ID visibility",
+    "body": "Showing test IDs on  hover sped up analyst workflows."
+  },
+  {
+    "id": "5",
+    "title": "Down-funnel icon",
+    "body": "Green funnel hover means >10% down-funnel uplift; red means <=0%."
+  }
+]

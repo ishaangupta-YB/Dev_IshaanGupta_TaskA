@@ -1,65 +1,167 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+
+interface FAQ {
+  id: string;
+  title: string;
+  body: string;
+}
+
+interface SearchResponse {
+  results: FAQ[];
+  message?: string;
+  summary?: string;
+  sources?: string[];
+  error?: string;
+}
 
 export default function Home() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [sources, setSources] = useState<string[]>([]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setError(null);
+    setMessage(null);
+    setSummary(null);
+    setSources([]);
+
+    if (!query.trim()) {
+      setError("Please enter a search query");
+      return;
+    }
+
+    setLoading(true);
+    setSubmitted(true);
+
+    try {
+      const response = await fetch("/api/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      const data: SearchResponse = await response.json();
+
+      if (response.ok) {
+        setResults(data.results || []);
+        setMessage(data.message || null);
+        setSummary(data.summary || null);
+        setSources(data.sources || []);
+      } else {
+        setError(data.error || "An error occurred while searching");
+        setResults([]);
+      }
+    } catch (err) {
+      setError("Failed to connect to the search service");
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSnippet = (body: string): string => {
+    return body.length > 150 ? body.substring(0, 150) + "..." : body;
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-white py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold text-black mb-8 text-center">
+          Mini Full-Stack Search
+        </h1>
+
+        <form onSubmit={handleSearch} className="mb-8">
+          <input
+            id="search-input"
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Enter search query..."
+            className="w-full px-4 py-3 border-2 border-black text-black placeholder-gray-500 focus:outline-none mb-4"
+            disabled={loading}
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-black text-white py-3 font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            {loading ? "Searching..." : "Search"}
+          </button>
+        </form>
+
+        {loading && (
+          <div className="border-2 border-black p-6 text-center">
+            <p className="text-black font-medium">Searching...</p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="border-2 border-black p-6">
+            <p className="text-black font-semibold mb-2">Error</p>
+            <p className="text-black">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && submitted && results.length === 0 && (
+          <div className="border-2 border-black p-6 text-center">
+            <p className="text-black font-semibold mb-2">No Results Found</p>
+            <p className="text-gray-600">
+              {message || "No matches found for your query. Please try different keywords."}
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && results.length > 0 && (
+          <div className="space-y-4">
+            {summary && (
+              <div className="border-2 border-black p-4 mb-4">
+                <p className="text-black font-semibold mb-2">Summary</p>
+                <p className="text-black">{summary}</p>
+                {sources.length > 0 && (
+                  <p className="text-gray-600 text-sm mt-2">
+                    Sources: {sources.join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <p className="text-black font-semibold mb-4">
+              {message || `Found ${results.length} result${results.length !== 1 ? "s" : ""}`}
+            </p>
+
+            {results.map((result) => (
+              <div key={result.id} className="border-2 border-black p-6">
+                <h3 className="text-lg font-semibold text-black mb-2">
+                  {result.title}
+                </h3>
+                <p className="text-gray-700 mb-2">
+                  {getSnippet(result.body)}
+                </p>
+                <p className="text-xs text-gray-500">ID: {result.id}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && !submitted && (
+          <div className="border-2 border-black p-8 text-center">
+            <p className="text-black">
+              Enter a search query above to find relevant FAQ articles
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
